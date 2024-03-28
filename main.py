@@ -124,7 +124,10 @@ class DemoDialog(QDialog):
         message_box = QMessageBox()
         message_box.setWindowTitle(title)
         message_box.setTextFormat(Qt.RichText)
-        message_box.setText('<b>NOTE: One or more values have been found empty.</b><br/><br/>'+message)
+        if none_found:
+            message_box.setText('<b>NOTE: One or more values have been found empty.</b><br/><br/>'+message)
+        else:
+            message_box.setText(message)
         message_box.setIcon(icon)
         message_box.setStandardButtons(QMessageBox.Close)
         message_box.setDefaultButton(QMessageBox.Close)
