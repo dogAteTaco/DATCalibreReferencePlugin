@@ -26,7 +26,7 @@ class InterfacePlugin(InterfaceAction):
     # shortcut. Remember that currently calibre has no central management for
     # keyboard shortcuts, so try to use an unusual/unused shortcut.
     action_spec = ('Create Reference', None,
-            'Run the DATCalibreReferencePlugin to create References', 'Ctrl+Shift+F1')
+            'Run the DATCalibreReferencePlugin to create References', 'Ctrl+Shift+F9')
 
     def genesis(self):
         # This method is called once per plugin, do initial setup here
