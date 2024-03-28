@@ -1,5 +1,6 @@
 # DAT Calibre Reference Plugin
 This plugin enables you to easily create references in APA and BIB format for your BibTeX references and documents based on the data on your Calibre Library.
+![calibre_EjG5h5s93c](https://github.com/dogAteTaco/DATCalibreReferencePlugin/assets/20733245/de4d6259-448e-4048-8df4-1c09ad7a2f18)
 
 # How to Use it
 Select the book or books you need the reference to in your library<br>
