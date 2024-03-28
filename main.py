@@ -1,123 +1,201 @@
 #!/usr/bin/env python
-# vim:fileencoding=utf-8
+# vim:fileencoding=UTF-8:ts=4:sw=4:sta:et:sts=4:ai
 
 
-__license__ = 'GPL v3'
-__copyright__ = '2014, Kovid Goyal <kovid at kovidgoyal.net>'
+__license__   = 'GPL v3'
+__copyright__ = '2024, dogAteTaco <dogatetaco@gmail.com>'
+__docformat__ = 'restructuredtext en'
 
-import re
-from qt.core import QAction, QInputDialog
-from css_parser.css import CSSRule
+if False:
+    # This is here to keep my python error checker from complaining about
+    # the builtin functions that will be defined by the plugin loading system
+    # You do not need this code in your plugins
+    get_icons = get_resources = None
 
-# The base class that all tools must inherit from
-from calibre.gui2.tweak_book.plugin import Tool
+from qt.core import QDialog, QVBoxLayout, QPushButton, QMessageBox, QLabel
 
-from calibre import force_unicode
-from calibre.gui2 import error_dialog
-from calibre.ebooks.oeb.polish.container import OEB_DOCS, OEB_STYLES, serialize
+from calibre_plugins.interface_demo.config import prefs
 
 
-class DemoTool(Tool):
 
-    #: Set this to a unique name it will be used as a key
-    name = 'demo-tool'
+class DemoDialog(QDialog):
 
-    #: If True the user can choose to place this tool in the plugins toolbar
-    allowed_in_toolbar = True
+    def __init__(self, gui, icon, do_user_config):
+        QDialog.__init__(self, gui)
+        self.gui = gui
+        self.do_user_config = do_user_config
 
-    #: If True the user can choose to place this tool in the plugins menu
-    allowed_in_menu = True
+        # The current database shown in the GUI
+        # db is an instance of the class LibraryDatabase from db/legacy.py
+        # This class has many, many methods that allow you to do a lot of
+        # things. For most purposes you should use db.new_api, which has
+        # a much nicer interface from db/cache.py
+        self.db = gui.current_db
 
-    def create_action(self, for_toolbar=True):
-        # Create an action, this will be added to the plugins toolbar and
-        # the plugins menu
-        ac = QAction(get_icons('images/icon.png'), 'Magnify fonts', self.gui)  # noqa
-        if not for_toolbar:
-            # Register a keyboard shortcut for this toolbar action. We only
-            # register it for the action created for the menu, not the toolbar,
-            # to avoid a double trigger
-            self.register_shortcut(ac, 'magnify-fonts-tool', default_keys=('Ctrl+Shift+Alt+D',))
-        ac.triggered.connect(self.ask_user)
-        return ac
+        self.l = QVBoxLayout()
+        self.setLayout(self.l)
 
-    def ask_user(self):
-        # Ask the user for a factor by which to multiply all font sizes
-        factor, ok = QInputDialog.getDouble(
-            self.gui, 'Enter a magnification factor', 'Allow font sizes in the book will be multiplied by the specified factor',
-            value=2, min=0.1, max=4
-        )
-        if ok:
-            # Ensure any in progress editing the user is doing is present in the container
-            self.boss.commit_all_editors_to_container()
-            try:
-                self.magnify_fonts(factor)
-            except Exception:
-                # Something bad happened report the error to the user
-                import traceback
-                error_dialog(self.gui, _('Failed to magnify fonts'), _(
-                    'Failed to magnify fonts, click "Show details" for more info'),
-                    det_msg=traceback.format_exc(), show=True)
-                # Revert to the saved restore point
-                self.boss.revert_requested(self.boss.global_undo.previous_container)
-            else:
-                # Show the user what changes we have made, allowing her to
-                # revert them if necessary
-                self.boss.show_current_diff()
-                # Update the editor UI to take into account all the changes we
-                # have made
-                self.boss.apply_container_update_to_gui()
+        self.label = QLabel(prefs['hello_world_msg'])
+        self.l.addWidget(self.label)
 
-    def magnify_fonts(self, factor):
-        # Magnify all font sizes defined in the book by the specified factor
-        # First we create a restore point so that the user can undo all changes
-        # we make.
-        self.boss.add_savepoint('Before: Magnify fonts')
+        self.setWindowTitle('Reference Plugin')
+        self.setWindowIcon(icon)
 
-        container = self.current_container  # The book being edited as a container object
+        self.about_button = QPushButton('About', self)
+        self.about_button.clicked.connect(self.about)
+        self.l.addWidget(self.about_button)
 
-        # Iterate over all style declarations in the book, this means css
-        # stylesheets, <style> tags and style="" attributes
-        for name, media_type in container.mime_map.items():
-            if media_type in OEB_STYLES:
-                # A stylesheet. Parsed stylesheets are css_parser CSSStylesheet
-                # objects.
-                self.magnify_stylesheet(container.parsed(name), factor)
-                container.dirty(name)  # Tell the container that we have changed the stylesheet
-            elif media_type in OEB_DOCS:
-                # A HTML file. Parsed HTML files are lxml elements
+        self.apa_button = QPushButton(
+            'Generate APA Reference', self)
+        self.apa_button.clicked.connect(self.generate_apa_reference)
+        self.l.addWidget(self.apa_button)
 
-                for style_tag in container.parsed(name).xpath('//*[local-name="style"]'):
-                    if style_tag.text and style_tag.get('type', None) in {None, 'text/css'}:
-                        # We have an inline CSS <style> tag, parse it into a
-                        # stylesheet object
-                        sheet = container.parse_css(style_tag.text)
-                        self.magnify_stylesheet(sheet, factor)
-                        style_tag.text = serialize(sheet, 'text/css', pretty_print=True)
-                        container.dirty(name)  # Tell the container that we have changed the stylesheet
-                for elem in container.parsed(name).xpath('//*[@style]'):
-                    # Process inline style attributes
-                    block = container.parse_css(elem.get('style'), is_declaration=True)
-                    self.magnify_declaration(block, factor)
-                    elem.set('style', force_unicode(block.getCssText(separator=' '), 'utf-8'))
+        self.bib_button = QPushButton(
+            'Generate BIB Reference', self)
+        self.bib_button.clicked.connect(self.generate_bib_reference)
+        self.l.addWidget(self.bib_button)
 
-    def magnify_stylesheet(self, sheet, factor):
-        # Magnify all fonts in the specified stylesheet by the specified
-        # factor.
-        for rule in sheet.cssRules.rulesOfType(CSSRule.STYLE_RULE):
-            self.magnify_declaration(rule.style, factor)
 
-    def magnify_declaration(self, style, factor):
-        # Magnify all fonts in the specified style declaration by the specified
-        # factor
-        val = style.getPropertyValue('font-size')
-        if not val:
+        self.resize(self.sizeHint())
+
+    def show_yes_no_dialog(self, text):
+        message_box = QMessageBox()
+        message_box.setWindowTitle("Yes/No Dialog")
+        message_box.setText("Do you want to proceed?")
+        message_box.setIcon(QMessageBox.Question)
+        message_box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        message_box.setDefaultButton(QMessageBox.No)
+
+        # Show the message box and return the result
+        return message_box.exec_()
+
+    def handle_dialog_result(self, result, text):
+        if result == QMessageBox.Yes:
+            self.copy_to_clipboard(text)
+            # Handle the Yes response here
+        else:
             return
-        # see if the font-size contains a number
-        num = re.search(r'[0-9.]+', val)
-        if num is not None:
-            num = num.group()
-            val = val.replace(num, '%f' % (float(num) * factor))
-            style.setProperty('font-size', val)
-        # We should also be dealing with the font shorthand property and
-        # font sizes specified as non numbers, but those are left as exercises
-        # for the reader
+
+    def about(self):
+        text = get_resources('about.txt')
+        QMessageBox.about(self, 'About the Interface Plugin Demo',
+                text.decode('utf-8'))
+        
+    def generate_reference(self, format):
+        from calibre.ebooks.metadata.meta import set_metadata
+        from calibre.gui2 import error_dialog, info_dialog
+
+        # Get currently selected books
+        rows = self.gui.library_view.selectionModel().selectedRows()
+        if not rows or len(rows) == 0:
+            return error_dialog(self.gui, 'Cannot generate References',
+                             'No books selected', show=True)
+        # Map the rows to book ids
+        ids = list(map(self.gui.library_view.model().id, rows))
+        
+        reference_text = ''
+        found_any_none = False
+        for book_id in ids:
+            result, found_none = self.get_reference(book_id,format)
+            reference_text = reference_text + result +'\n\n'
+            if found_none:
+                found_any_none = True
+        if found_any_none:
+            self.show_dialog(QMessageBox.Warning, f'Empty fields found | {format} Reference',reference_text, found_any_none)
+        else:
+            self.show_dialog(QMessageBox.Information, f'{format} Reference',reference_text, found_any_none)
+            
+    def get_reference(self, book_id, format):
+
+        found_none = False
+        db = self.db.new_api
+        metadata = db.get_metadata(book_id, get_cover=True, cover_as_data=True)
+        
+        title = metadata.title
+        authors = metadata.authors
+        if isinstance(authors, list):
+            authors = ', '.join(author.strip() for author in authors)
+        else:
+            authors = authors.strip()
+        publisher = metadata.publisher
+        pub_date = metadata.pubdate
+        isbn = metadata.isbn
+
+        if format == "BIB":
+            reference = f"@book{{{book_id},<br/>&emsp;author ={{{authors}}},<br/>&emsp;year = {{({pub_date.strftime('%Y')}}},<br/>&emsp;title = {{{title}}},<br/>&emsp;publisher = {{{publisher}}},<br/>&emsp;note= {{{{ISBN}} {isbn}}}<br/>}}<br/><br/>"
+        else:
+            reference = f"{authors} ({pub_date.strftime('%Y')}). {title}. {publisher}. ISBN: {isbn}<br/>"
+
+        if title == None or authors == None or publisher == None or pub_date == None or isbn == None:
+            found_none = True
+        return (reference,found_none)
+    
+    def generate_apa_reference(self):
+        self.generate_reference("APA")
+
+    def generate_bib_reference(self):
+        self.generate_reference("BIB")
+    
+    def show_dialog(self, icon, title, message, none_found = False):
+        from PyQt5.QtCore import Qt
+        from functools import partial
+
+        message_box = QMessageBox()
+        message_box.setWindowTitle(title)
+        message_box.setTextFormat(Qt.RichText)
+        message_box.setText('<b>NOTE: One or more values have been found empty.</b><br/><br/>'+message)
+        message_box.setIcon(icon)
+        message_box.setStandardButtons(QMessageBox.Close)
+        message_box.setDefaultButton(QMessageBox.Close)
+
+        copy_button = message_box.addButton("Copy to Clipboard", QMessageBox.ActionRole)
+        copy_button.clicked.connect(partial(self.copy_to_clipboard, message.replace('<br/>','\n').replace('&emsp;','\t')))
+        # Show the message box and return the result
+        return message_box.exec_()
+
+    # Example function to copy text to clipboard
+    def copy_to_clipboard(self,text):
+        from PyQt5.QtWidgets import QApplication
+        from PyQt5.QtGui import QClipboard
+
+        clipboard = QApplication.clipboard()
+        clipboard.setText(text)
+
+
+    def config(self):
+        self.do_user_config(parent=self)
+        # Apply the changes
+        self.label.setText(prefs['hello_world_msg'])
+
+
+class CopyDialog(QDialog):
+
+    def __init__(self, gui, icon, do_user_config):
+        QDialog.__init__(self, gui)
+        self.gui = gui
+        self.do_user_config = do_user_config
+
+        # The current database shown in the GUI
+        # db is an instance of the class LibraryDatabase from db/legacy.py
+        # This class has many, many methods that allow you to do a lot of
+        # things. For most purposes you should use db.new_api, which has
+        # a much nicer interface from db/cache.py
+        self.db = gui.current_db
+
+        self.l = QVBoxLayout()
+        self.setLayout(self.l)
+
+        self.label = QLabel(prefs['hello_world_msg'])
+        self.l.addWidget(self.label)
+
+        self.setWindowTitle('Reference Plugin')
+        self.setWindowIcon(icon)
+
+        self.apa_button = QPushButton(
+            'Copy', self)
+        self.apa_button.clicked.connect(self.generate_apa_reference)
+        self.l.addWidget(self.apa_button)
+
+
+
+        self.resize(self.sizeHint())

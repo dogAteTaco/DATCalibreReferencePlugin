@@ -1,0 +1,6 @@
+DATCalibreReferencePlugin
+===========================
+
+Created by dogAteTaco
+
+Requires calibre >= 0.7.53
