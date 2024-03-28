@@ -3,9 +3,8 @@
 
 
 __license__   = 'GPL v3'
-__copyright__ = '2024, dogAteTaco <dogatetaco@gmail.com>'
+__copyright__ = '2024, dogAteTaco'
 __docformat__ = 'restructuredtext en'
-
 
 from qt.core import QWidget, QHBoxLayout, QLabel, QLineEdit
 
@@ -19,7 +18,7 @@ from calibre.utils.config import JSONConfig
 prefs = JSONConfig('plugins/interface_demo')
 
 # Set defaults
-prefs.defaults['hello_world_msg'] = 'Generate references in APA or BIB format for your documents.'
+prefs.defaults['hello_world_msg'] = 'Create APA and BIB references of your book for your documents.'
 
 
 class ConfigWidget(QWidget):

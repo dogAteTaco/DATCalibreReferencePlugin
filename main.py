@@ -3,7 +3,7 @@
 
 
 __license__   = 'GPL v3'
-__copyright__ = '2024, dogAteTaco <dogatetaco@gmail.com>'
+__copyright__ = '2024, dogAteTaco'
 __docformat__ = 'restructuredtext en'
 
 if False:
@@ -15,7 +15,6 @@ if False:
 from qt.core import QDialog, QVBoxLayout, QPushButton, QMessageBox, QLabel
 
 from calibre_plugins.interface_demo.config import prefs
-
 
 
 class DemoDialog(QDialog):
@@ -46,39 +45,21 @@ class DemoDialog(QDialog):
         self.l.addWidget(self.about_button)
 
         self.apa_button = QPushButton(
-            'Generate APA Reference', self)
+            'Generate APA References', self)
         self.apa_button.clicked.connect(self.generate_apa_reference)
         self.l.addWidget(self.apa_button)
 
         self.bib_button = QPushButton(
-            'Generate BIB Reference', self)
+            'Generate BIB References', self)
         self.bib_button.clicked.connect(self.generate_bib_reference)
         self.l.addWidget(self.bib_button)
 
 
         self.resize(self.sizeHint())
 
-    def show_yes_no_dialog(self, text):
-        message_box = QMessageBox()
-        message_box.setWindowTitle("Yes/No Dialog")
-        message_box.setText("Do you want to proceed?")
-        message_box.setIcon(QMessageBox.Question)
-        message_box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
-        message_box.setDefaultButton(QMessageBox.No)
-
-        # Show the message box and return the result
-        return message_box.exec_()
-
-    def handle_dialog_result(self, result, text):
-        if result == QMessageBox.Yes:
-            self.copy_to_clipboard(text)
-            # Handle the Yes response here
-        else:
-            return
-
     def about(self):
         text = get_resources('about.txt')
-        QMessageBox.about(self, 'About the DATCalibreReferencePlugin',
+        QMessageBox.about(self, 'About the ',
                 text.decode('utf-8'))
         
     def generate_reference(self, format):
@@ -122,7 +103,7 @@ class DemoDialog(QDialog):
         isbn = metadata.isbn
 
         if format == "BIB":
-            reference = f"@book{{{book_id},<br/>&emsp;author ={{{authors}}},<br/>&emsp;year = {{({pub_date.strftime('%Y')}}},<br/>&emsp;title = {{{title}}},<br/>&emsp;publisher = {{{publisher}}},<br/>&emsp;note= {{{{ISBN}} {isbn}}}<br/>}}<br/><br/>"
+            reference = f"@book{{{book_id},<br/>&emsp;author ={{{authors}}},<br/>&emsp;year = {{{pub_date.strftime('%Y')}}},<br/>&emsp;title = {{{title}}},<br/>&emsp;publisher = {{{publisher}}},<br/>&emsp;note= {{{{ISBN}} {isbn}}}<br/>}}<br/><br/>"
         else:
             reference = f"{authors} ({pub_date.strftime('%Y')}). {title}. {publisher}. ISBN: {isbn}<br/>"
 
@@ -195,7 +176,5 @@ class CopyDialog(QDialog):
             'Copy', self)
         self.apa_button.clicked.connect(self.generate_apa_reference)
         self.l.addWidget(self.apa_button)
-
-
 
         self.resize(self.sizeHint())

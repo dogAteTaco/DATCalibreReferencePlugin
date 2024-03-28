@@ -20,7 +20,7 @@ class InterfacePluginDemo(InterfaceActionBase):
     calibre utilities to run without needing to load the GUI libraries.
     '''
     name                = 'DATCalibreReferencePlugin'
-    description         = 'An advanced plugin demo'
+    description         = 'Enables you to create APA and BIB bibliographic references to your books.'
     supported_platforms = ['windows', 'osx', 'linux']
     author              = 'dogAteTaco'
     version             = (1, 0, 0)

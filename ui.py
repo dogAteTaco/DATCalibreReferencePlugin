@@ -3,9 +3,8 @@
 
 
 __license__   = 'GPL v3'
-__copyright__ = '2024, dogAteTaco <dogatetaco@gmail.com>'
+__copyright__ = '2024, dogAteTaco'
 __docformat__ = 'restructuredtext en'
-
 
 if False:
     # This is here to keep my python error checker from complaining about
@@ -20,14 +19,14 @@ from calibre_plugins.interface_demo.main import DemoDialog
 
 class InterfacePlugin(InterfaceAction):
 
-    name = 'Interface Plugin Demo'
+    name = 'DATCalibreReferencePlugin'
 
     # Declare the main action associated with this plugin
     # The keyboard shortcut can be None if you dont want to use a keyboard
     # shortcut. Remember that currently calibre has no central management for
     # keyboard shortcuts, so try to use an unusual/unused shortcut.
-    action_spec = ('Interface Plugin Demo', None,
-            'Run the Interface Plugin Demo', 'Ctrl+Shift+F9')
+    action_spec = ('Create Reference', None,
+            'Run the DATCalibreReferencePlugin to create References', 'Ctrl+Shift+F1')
 
     def genesis(self):
         # This method is called once per plugin, do initial setup here
