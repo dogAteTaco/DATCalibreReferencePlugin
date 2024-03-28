@@ -42,7 +42,7 @@ class InterfacePlugin(InterfaceAction):
         # should pass a list of names to get_icons. In this case, get_icons
         # will return a dictionary mapping names to QIcons. Names that
         # are not found in the zip file will result in null QIcons.
-        icon = get_icons('images/icon.png', 'Interface Demo Plugin')
+        icon = get_icons('images/icon.png', 'DATCalibreReferencePlugin')
 
         # The qaction is automatically created from the action_spec defined
         # above

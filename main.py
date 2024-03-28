@@ -78,7 +78,7 @@ class DemoDialog(QDialog):
 
     def about(self):
         text = get_resources('about.txt')
-        QMessageBox.about(self, 'About the Interface Plugin Demo',
+        QMessageBox.about(self, 'About the DATCalibreReferencePlugin',
                 text.decode('utf-8'))
         
     def generate_reference(self, format):
