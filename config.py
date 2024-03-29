@@ -15,7 +15,7 @@ from calibre.utils.config import JSONConfig
 # in a global namespace, so make it as unique as possible.
 # You should always prefix your config file name with plugins/,
 # so as to ensure you dont accidentally clobber a calibre config file
-prefs = JSONConfig('plugins/datreferenceplugin')
+prefs = JSONConfig('plugins/datreference')
 
 # Set defaults
 prefs.defaults['hello_world_msg'] = 'Create APA and BIB references of your book for your documents.'

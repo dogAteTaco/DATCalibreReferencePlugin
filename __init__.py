@@ -29,7 +29,7 @@ class InterfacePluginDemo(InterfaceActionBase):
     #: This field defines the GUI plugin class that contains all the code
     #: that actually does something. Its format is module_path:class_name
     #: The specified class must be defined in the specified module.
-    actual_plugin       = 'calibre_plugins.interface_demo.ui:InterfacePlugin'
+    actual_plugin       = 'calibre_plugins.datreference.ui:InterfacePlugin'
 
     def is_customizable(self):
         '''
@@ -60,7 +60,7 @@ class InterfacePluginDemo(InterfaceActionBase):
         # top of the module as importing the config class will also cause the
         # GUI libraries to be loaded, which we do not want when using calibre
         # from the command line
-        from calibre_plugins.interface_demo.config import ConfigWidget
+        from calibre_plugins.datreference.config import ConfigWidget
         return ConfigWidget()
 
     def save_settings(self, config_widget):

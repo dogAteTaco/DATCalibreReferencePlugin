@@ -14,7 +14,7 @@ if False:
 
 # The class that all interface action plugins must inherit from
 from calibre.gui2.actions import InterfaceAction
-from calibre_plugins.interface_demo.main import DemoDialog
+from calibre_plugins.datreference.main import DemoDialog
 
 
 class InterfacePlugin(InterfaceAction):

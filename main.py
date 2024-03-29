@@ -14,7 +14,7 @@ if False:
 
 from qt.core import QCheckBox, QDialog, QVBoxLayout, QPushButton, QMessageBox, QLabel
 from qt.core import Qt
-from calibre_plugins.interface_demo.config import prefs
+from calibre_plugins.datreference.config import prefs
 
 
 class DemoDialog(QDialog):
@@ -37,9 +37,15 @@ class DemoDialog(QDialog):
         # Sets the layout for the menu
         self.l = QVBoxLayout()
         self.setLayout(self.l)
+        self.setFixedWidth(350)
 
         self.label = QLabel(prefs['hello_world_msg'])
         self.l.addWidget(self.label)
+        self.label.setWordWrap(True)
+
+        self.note = QLabel('Note: The ISBN needs to be added in the metadata in the section of <i>Ids</i>. It needs to be added in the following format <i>isbn:XXXXXXXX</i>. Calibre will automatically verify if the number is valid.')
+        self.l.addWidget(self.note)
+        self.note.setWordWrap(True)
 
         self.isbn_cb = QCheckBox('Show ISBN')
         self.l.addWidget(self.isbn_cb)
