@@ -12,8 +12,8 @@ if False:
     # You do not need this code in your plugins
     get_icons = get_resources = None
 
-from qt.core import QDialog, QVBoxLayout, QPushButton, QMessageBox, QLabel
-
+from qt.core import QCheckBox, QDialog, QVBoxLayout, QPushButton, QMessageBox, QLabel
+from qt.core import Qt
 from calibre_plugins.interface_demo.config import prefs
 
 
@@ -30,19 +30,27 @@ class DemoDialog(QDialog):
         # things. For most purposes you should use db.new_api, which has
         # a much nicer interface from db/cache.py
         self.db = gui.current_db
-
+        #Title and Icon for the Plugin Menu
+        self.setWindowTitle('Reference Plugin')
+        self.setWindowIcon(icon)
+        
+        # Sets the layout for the menu
         self.l = QVBoxLayout()
         self.setLayout(self.l)
 
         self.label = QLabel(prefs['hello_world_msg'])
         self.l.addWidget(self.label)
 
-        self.setWindowTitle('Reference Plugin')
-        self.setWindowIcon(icon)
-
-        self.about_button = QPushButton('About', self)
-        self.about_button.clicked.connect(self.about)
-        self.l.addWidget(self.about_button)
+        self.isbn_cb = QCheckBox('Show ISBN')
+        self.l.addWidget(self.isbn_cb)
+        self.isbn_cb.setChecked(prefs['show_isbn'])
+        self.isbn_cb.stateChanged.connect(self.updateISBNCheckboxState)
+        
+        self.hide_missing_isbn_cb = QCheckBox('Skip missing ISBN numbers automatically')
+        self.l.addWidget(self.hide_missing_isbn_cb)
+        self.hide_missing_isbn_cb.setChecked(prefs['skip_missing_isbn'])
+        self.hide_missing_isbn_cb.stateChanged.connect(self.updateSkipISBNCheckboxState)
+        
 
         self.apa_button = QPushButton(
             'Generate APA References', self)
@@ -54,6 +62,9 @@ class DemoDialog(QDialog):
         self.bib_button.clicked.connect(self.generate_bib_reference)
         self.l.addWidget(self.bib_button)
 
+        self.about_button = QPushButton('About', self)
+        self.about_button.clicked.connect(self.about)
+        self.l.addWidget(self.about_button)
 
         self.resize(self.sizeHint())
 
@@ -61,6 +72,14 @@ class DemoDialog(QDialog):
         text = get_resources('about.txt')
         QMessageBox.about(self, 'About the ',
                 text.decode('utf-8'))
+        
+    def updateISBNCheckboxState(self, state):
+        checked = state
+        prefs['show_isbn'] = checked
+
+    def updateSkipISBNCheckboxState(self, state):
+        checked = state
+        prefs['skip_missing_isbn'] = checked
         
     def generate_reference(self, format):
         from calibre.ebooks.metadata.meta import set_metadata
@@ -93,21 +112,44 @@ class DemoDialog(QDialog):
         metadata = db.get_metadata(book_id, get_cover=True, cover_as_data=True)
         
         title = metadata.title
-        authors = metadata.authors
-        if isinstance(authors, list):
-            authors = ', '.join(author.strip() for author in authors)
-        else:
-            authors = authors.strip()
+        authorNames = metadata.authors
+        authorsSorted = metadata.author_sort_map
+
         publisher = metadata.publisher
         pub_date = metadata.pubdate
         isbn = metadata.isbn
-
+        
+        # Checks if the user wants the ISBN to be shown
+        show_isbn = prefs['show_isbn']
+        skip_missing_isbn = prefs['skip_missing_isbn']
+        # Checks which format was asked for
         if format == "BIB":
-            reference = f"@book{{{book_id},<br/>&emsp;author ={{{authors}}},<br/>&emsp;year = {{{pub_date.strftime('%Y')}}},<br/>&emsp;title = {{{title}}},<br/>&emsp;publisher = {{{publisher}}},<br/>&emsp;note= {{{{ISBN}} {isbn}}}<br/>}}<br/><br/>"
+            # Generates the authors as separated by comma and first name on the start
+            authors = ''
+            if isinstance(authorNames, list):
+                authors = ', '.join(author.strip() for author in authorNames)
+            else:
+                authors = authorNames.strip()
+            reference = f"@book{{{book_id},<br/>&emsp;author ={{{authors}}},<br/>&emsp;year = {{{pub_date.strftime('%Y')}}},<br/>&emsp;title = {{{title}}},<br/>&emsp;publisher = {{{publisher}}},<br/>"
+            if show_isbn and not (isbn == None and skip_missing_isbn):
+                reference = reference + f"&emsp;note= {{{{ISBN}} {isbn}}}<br/>"
+            reference = reference + f"}}<br/><br/>"
         else:
-            reference = f"{authors} ({pub_date.strftime('%Y')}). {title}. {publisher}. ISBN: {isbn}<br/>"
+            # Changes the format of the authors to Last Name first based on the Sorted field on the Metadata
+            authors = ''
+            first = True
+            for author in authorNames:
+                if first: 
+                    authors = authors+ authorsSorted[author]
+                    first = False
+                else:
+                    authors = authors+', & '+authorsSorted[author]
+            reference = f"{authors} ({pub_date.strftime('%Y')}). {title}. {publisher}."
+            if show_isbn and not (isbn == None and skip_missing_isbn):
+                reference = reference + f" ISBN: {isbn}."
+            reference = reference + f"<br/>"
 
-        if title == None or authors == None or publisher == None or pub_date == None or isbn == None:
+        if title == None or authors == None or publisher == None or pub_date == None or (isbn == None and show_isbn and not skip_missing_isbn):
             found_none = True
         return (reference,found_none)
     
